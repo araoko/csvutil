@@ -1,4 +1,4 @@
-package csvstruct
+package csvutil
 
 import (
 	"encoding/csv"
