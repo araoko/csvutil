@@ -9,9 +9,10 @@ import (
 )
 
 //LoadFromReader creates csvStruct object from a reader
-func LoadFromReader(reader io.Reader) (*CsvStruct, error){
+func LoadFromReader(reader io.Reader) (*CsvStruct, error) {
 	r := csv.NewReader(reader)
 	//r.Comma = '\t'
+	r.FieldsPerRecord = -1
 	headers, err := r.Read()
 	if err != nil {
 		return nil, err
@@ -56,16 +57,23 @@ func copySlice(s []string) []string {
 	return a
 }
 
+func copySliceL(s []string, l int) []string {
+	a := make([]string, l)
+	copy(a, s)
+	return a
+}
+
 type CsvStruct struct {
 	h []string
 	c [][]string
 }
 
 func (r *CsvStruct) append(row []string) error {
-	if len(row) != len(r.h) {
-		return fmt.Errorf("Error: header count (%d) is not equal to entry count (%d)", len(r.h), len(row))
+	if len(row) > len(r.h) {
+		return fmt.Errorf("Error: header count (%d) is less than entry count (%d)", len(r.h), len(row))
 	}
-	r.c = append(r.c, copySlice(row))
+
+	r.c = append(r.c, copySliceL(row, len(r.h)))
 	return nil
 }
 
@@ -102,11 +110,21 @@ func (r *CsvStruct) Headers() []string {
 	return copySlice(r.h)
 }
 
-func (r *CsvStruct) GetValueAtIndex(rowIndex, headerIndex int) (string, error){
-if rowIndex < 0 || headerIndex <0 || rowIndex >= r.RowCount() || headerIndex >= r.HeaderCount(){
-	return "", fmt.Errorf("Error: Row Index (%v) and Header Index (%v) out of bounds. Row Count (%v), Header Count (%v)",rowIndex,headerIndex,r.RowCount(),r.HeaderCount())
+func (r *CsvStruct) GetValueAtIndex(rowIndex, headerIndex int) (string, error) {
+	if rowIndex < 0 || headerIndex < 0 || rowIndex >= r.RowCount() || headerIndex >= r.HeaderCount() {
+		return "", fmt.Errorf("Error: Row Index (%v) and Header Index (%v) out of bounds. Row Count (%v), Header Count (%v)", rowIndex, headerIndex, r.RowCount(), r.HeaderCount())
+	}
+	return r.c[rowIndex][headerIndex], nil
 }
-return r.c[rowIndex][headerIndex], nil
+
+func (r *CsvStruct) FindEntryI(headerIndex int, value string) ([]string, int) {
+
+	for i, v := range r.c {
+		if strings.EqualFold(value, v[headerIndex]) {
+			return v, i
+		}
+	}
+	return nil, -1
 }
 
 func (r *CsvStruct) FindEntry(headerName string, value string) ([]string, int) {
@@ -115,11 +133,5 @@ func (r *CsvStruct) FindEntry(headerName string, value string) ([]string, int) {
 	if p == -1 {
 		return nil, -1
 	}
-
-	for i, v := range r.c {
-		if strings.EqualFold(value, v[p]) {
-			return v, i
-		}
-	}
-	return nil, -1
+	return r.FindEntryI(p, value)
 }
