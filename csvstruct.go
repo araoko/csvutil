@@ -48,6 +48,7 @@ func LoadFile(csvFile string) (*CsvStruct, error) {
 	defer func() {
 		file.Close()
 	}()
+	SkipBOM(file)
 	return LoadFromReader(file)
 }
 
@@ -61,6 +62,21 @@ func copySliceL(s []string, l int) []string {
 	a := make([]string, l)
 	copy(a, s)
 	return a
+}
+
+func SkipBOM(fd io.ReadSeeker) error {
+	var bom [3]byte
+	_, err := io.ReadFull(fd, bom[:])
+	if err != nil {
+		return err
+	}
+	if bom[0] != 0xef || bom[1] != 0xbb || bom[2] != 0xbf {
+		_, err = fd.Seek(0, 0) // Not a BOM -- seek back to the beginning
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 type CsvStruct struct {
