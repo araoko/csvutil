@@ -133,6 +133,14 @@ func (r *CsvStruct) GetValueAtIndex(rowIndex, headerIndex int) (string, error) {
 	return r.c[rowIndex][headerIndex], nil
 }
 
+func (r *CsvStruct) SetValueAtIndex(rowIndex, headerIndex int, value string) error {
+	if rowIndex < 0 || headerIndex < 0 || rowIndex >= r.RowCount() || headerIndex >= r.HeaderCount() {
+		return fmt.Errorf("Error: Row Index (%v) and Header Index (%v) out of bounds. Row Count (%v), Header Count (%v)", rowIndex, headerIndex, r.RowCount(), r.HeaderCount())
+	}
+	r.c[rowIndex][headerIndex] = value
+	return nil
+}
+
 func (r *CsvStruct) FindEntryI(headerIndex int, value string) ([]string, int) {
 
 	for i, v := range r.c {
@@ -150,4 +158,21 @@ func (r *CsvStruct) FindEntry(headerName string, value string) ([]string, int) {
 		return nil, -1
 	}
 	return r.FindEntryI(p, value)
+}
+
+func (r *CsvStruct) Write2File(f string) error {
+	file, err := os.OpenFile(f, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0755)
+	if err != nil {
+		return err
+	}
+	writer := csv.NewWriter(file)
+	err = writer.Write(r.Headers())
+	if err != nil {
+		return err
+	}
+	err = writer.WriteAll(r.c)
+	if err != nil {
+		return err
+	}
+	return nil
 }
