@@ -8,11 +8,17 @@ import (
 	"strings"
 )
 
-//LoadFromReader creates csvStruct object from a reader
-func LoadFromReader(reader io.Reader) (*CsvStruct, error) {
+//LoadFromIOReader creates csvStruct object from a io.reader
+func LoadFromIOReader(reader io.Reader) (*CsvStruct, error) {
 	r := csv.NewReader(reader)
 	//r.Comma = '\t'
 	r.FieldsPerRecord = -1
+	return LoadFromCSVReader(r)
+
+}
+
+//LoadFromCSVReader creates csvStruct object from a csv.reader
+func LoadFromCSVReader(r *csv.Reader) (*CsvStruct, error) {
 	headers, err := r.Read()
 	if err != nil {
 		return nil, err
@@ -48,8 +54,20 @@ func LoadFile(csvFile string) (*CsvStruct, error) {
 	defer func() {
 		file.Close()
 	}()
+	r := CreateCSVReaderFromIOReadSeeker(file)
+	return LoadFromCSVReader(r)
+}
+
+func CreateCSVReaderFromIOReadSeeker(file io.ReadSeeker) *csv.Reader {
 	SkipBOM(file)
-	return LoadFromReader(file)
+	return CreateCSVReaderFromIOReader(file)
+}
+
+func CreateCSVReaderFromIOReader(file io.Reader) *csv.Reader {
+	r := csv.NewReader(file)
+	//r.Comma = '\t'
+	r.FieldsPerRecord = -1
+	return r
 }
 
 func copySlice(s []string) []string {
@@ -82,6 +100,23 @@ func SkipBOM(fd io.ReadSeeker) error {
 type CsvStruct struct {
 	h []string
 	c [][]string
+}
+
+func (r *CsvStruct) Add(s *CsvStruct) error {
+	//TODO this works only if the collomns for both csv sfruct are at
+	//the same indeces, must fix this
+	if r.HeaderCount() != s.HeaderCount() {
+		return fmt.Errorf("Error: header count  mis-match. first = (%d)   second = (%d)", len(r.h), len(s.h))
+	}
+	for i, v := range s.h {
+		if r.h[i] != v {
+			return fmt.Errorf("Error: header mis-match. at index (%d) : (%s)  and (%s)", i, r.h[i], s.h[i])
+		}
+	}
+	for _, v := range s.c {
+		r.c = append(r.c, v)
+	}
+	return nil
 }
 
 func (r *CsvStruct) append(row []string) error {
