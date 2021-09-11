@@ -47,7 +47,7 @@ func LoadFromCSVReader(r *csv.Reader) (*CsvStruct, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = t.append(row)
+		err = t.Append(row)
 		if err != nil {
 			return nil, err
 		}
@@ -129,7 +129,7 @@ func (r *CsvStruct) Add(s *CsvStruct) error {
 	return nil
 }
 
-func (r *CsvStruct) append(row []string) error {
+func (r *CsvStruct) Append(row []string) error {
 	if len(row) > len(r.h) {
 		return fmt.Errorf("Error: header count (%d) is less than entry count (%d)", len(r.h), len(row))
 	}
