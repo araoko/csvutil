@@ -8,6 +8,16 @@ import (
 	"strings"
 )
 
+func NewCsvStruct(headers []string) (*CsvStruct, error) {
+	if len(headers) == 0 {
+		return nil, fmt.Errorf("cannot create CsvStruct with nil or zero lenght headers")
+	}
+	return &CsvStruct{
+		h: copySlice(headers),
+		c: make([][]string, 0),
+	}, nil
+}
+
 //LoadFromIOReader creates csvStruct object from a io.reader
 func LoadFromIOReader(reader io.Reader) (*CsvStruct, error) {
 	r := csv.NewReader(reader)
@@ -24,9 +34,9 @@ func LoadFromCSVReader(r *csv.Reader) (*CsvStruct, error) {
 		return nil, err
 	}
 
-	t := CsvStruct{
-		h: copySlice(headers),
-		c: make([][]string, 0),
+	t, err := NewCsvStruct(headers)
+	if err != nil {
+		return nil, err
 	}
 
 	for {
@@ -42,7 +52,7 @@ func LoadFromCSVReader(r *csv.Reader) (*CsvStruct, error) {
 			return nil, err
 		}
 	}
-	return &t, nil
+	return t, nil
 }
 
 //LoadFile reads the csv file and creates a csvStruct object
